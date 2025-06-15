@@ -1,11 +1,31 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = 'kezara666/test:latest'  // DockerHub image name
+    }
+
     stages {
-        stage('Echo') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Hello, Jenkins! This is a simple echo message.'
+                bat 'docker build -t %DOCKER_IMAGE% .'
             }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                // Use the Jenkins credentials ID to authenticate with DockerHub
+                withCredentials([usernamePassword(credentialsId: '475950fb-cc22-4cef-ba21-ff5248be8c8d', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    bat "echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin"
+                    bat 'docker push %DOCKER_IMAGE%'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            bat 'docker logout'
         }
     }
 }
